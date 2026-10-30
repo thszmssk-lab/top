@@ -1,37 +1,173 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>영상 컨트롤타워</title>
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--fg:#1c1e21;--mut:#6b7280;--bd:#e5e7eb;--ok:#16a34a;--wait:#d97706;--bad:#dc2626;--ac:#2563eb}
-@media(prefers-color-scheme:dark){:root{--bg:#111318;--card:#1b1e26;--fg:#e8eaed;--mut:#9aa0ab;--bd:#2c313c}}
-body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif}
-h1{font-size:20px}h2{font-size:16px;margin:24px 0 8px}h3{font-size:13px;color:var(--mut);margin:12px 0 4px}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px 12px;overflow-x:auto}
-table{width:100%;border-collapse:collapse}td,th{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
-.t{white-space:normal;min-width:180px}.s{font-weight:600}.uploaded{color:var(--ok)}.scheduled,.ready{color:var(--wait)}.failed{color:var(--bad)}
-button{border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:6px;padding:4px 8px;cursor:pointer;margin-right:4px}
-button.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+:root{--bg:#f3f4f7;--card:#fff;--fg:#1a1d24;--mut:#6b7280;--bd:#e4e7ec;--soft:#f7f8fa;
+--ok:#16a34a;--okbg:#dcfce7;--warn:#d97706;--warnbg:#fef3c7;--bad:#dc2626;--badbg:#fee2e2;--ac:#2563eb;
+--c0:#3b82f6;--c1:#f97316;--c2:#22c55e;--c3:#a855f7;--c4:#eab308}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#181b22;--fg:#e8eaed;--mut:#9aa0ab;--bd:#2a2f3a;--soft:#1e222b;
+--okbg:#12361f;--warnbg:#3b2f10;--badbg:#3f1818;--ac:#60a5fa}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,"Malgun Gothic",sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
+header h1{font-size:17px;margin:0;flex:1}header .clock{color:var(--mut);font-variant-numeric:tabular-nums}
+main{max-width:1500px;margin:0 auto;padding:16px 20px 60px;display:grid;gap:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 16px}
+.card h2{font-size:14px;margin:0 0 10px}.card h2 small{color:var(--mut);font-weight:400;margin-left:6px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.kpi .l{color:var(--mut);font-size:12px}.kpi .v{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}.kpi .v small{font-size:14px;color:var(--mut);font-weight:500}
+.kpi.bad .v{color:var(--bad)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
+.chcard{border-top:4px solid var(--cc)}.chcard .top{display:flex;align-items:center;gap:8px}.chcard .top b{font-size:15px;flex:1}
+.acct{color:var(--mut);font-size:12px}
+.kv{display:grid;grid-template-columns:90px 1fr;gap:2px 8px;margin-top:8px;font-size:13px}.kv span:nth-child(odd){color:var(--mut)}
+.src{margin-top:10px;padding:8px;background:var(--soft);border-radius:8px;font-size:13px}
+.src .n{display:flex;gap:6px;align-items:center}.src .n b{flex:1}
+.chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;background:var(--soft);border:1px solid var(--bd);white-space:nowrap}
+.chip.ok{background:var(--okbg);color:var(--ok);border-color:transparent}.chip.warn{background:var(--warnbg);color:var(--warn);border-color:transparent}
+.chip.bad{background:var(--badbg);color:var(--bad);border-color:transparent}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.tab{border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:8px;padding:4px 12px;cursor:pointer;font:inherit}
+.tab.on{background:var(--ac);border-color:var(--ac);color:#fff}
+table{width:100%;border-collapse:collapse}th{color:var(--mut);font-weight:500;font-size:12px;text-align:left;padding:6px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-child td{border-bottom:0}
+.dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;background:var(--cc)}
+.thumb{width:54px;height:96px;border-radius:6px;background:var(--soft);border:1px solid var(--bd);object-fit:cover;display:block;cursor:pointer}
+.thumb.long{width:128px;height:72px}
+.title{cursor:pointer;max-width:520px}.title:hover{text-decoration:underline}.detail{display:none;color:var(--mut);font-size:12px;margin-top:4px;white-space:pre-wrap}
+.title.open+.detail{display:block}
+button.b{border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:7px;padding:5px 12px;cursor:pointer;font:inherit}
+button.b.p{background:var(--ac);border-color:var(--ac);color:#fff}button.b.g{background:var(--ok);border-color:var(--ok);color:#fff}
+.mut{color:var(--mut)}.late{color:var(--bad);font-weight:600}.empty{color:var(--mut);padding:18px;text-align:center}
+.scroll{overflow-x:auto}.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-bottom:6px}
+svg text{fill:var(--mut);font-size:11px}
+dialog{border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--fg);padding:20px;max-width:560px;width:92vw}
+dialog::backdrop{background:#0008}dialog h3{margin:0 0 12px}.field{margin:10px 0}.field label{display:block;color:var(--mut);font-size:12px}
+.field .row{display:flex;gap:8px;align-items:flex-start}.field .box{flex:1;background:var(--soft);border:1px solid var(--bd);border-radius:8px;padding:6px 10px;white-space:pre-wrap;word-break:break-all;max-height:120px;overflow:auto}
+.acts{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
 </style></head><body>
-<h1>영상 컨트롤타워</h1><div id="sum" style="color:var(--mut)"></div><div id="root"></div>
+<header><h1>📺 영상 컨트롤타워</h1><span class="clock" id="clock"></span><button class="b" onclick="load()">새로고침</button></header>
+<main>
+ <section class="kpis" id="kpis"></section>
+ <section class="card"><h2>오늘 타임라인<small>○ 예정 · ● 올림 · 빨강 = 지연 · 세로선 = 지금</small></h2><div class="scroll" id="timeline"></div></section>
+ <section class="grid2">
+  <div class="card"><h2>최근 14일 올린 개수</h2><div class="legend" id="leg1"></div><div id="bars"></div></div>
+  <div class="card"><h2>채널별 현황 요약</h2><div class="scroll" id="summary"></div></div>
+ </section>
+ <section><h2 style="font-size:14px;margin:0 0 8px">채널 대시보드<small class="mut"> · 재고 = 올릴 영상 수 (제작방당 하루 1편 기준)</small></h2><div class="chcards" id="chcards"></div></section>
+ <section class="card"><h2>올릴 영상<small id="qcount"></small></h2><div class="tabs" id="qtabs"></div><div class="scroll" id="queue" style="max-height:760px;overflow-y:auto"></div></section>
+ <section class="card"><h2>최근 올린 것<small>채널마다 최근 6개</small></h2><div class="scroll" id="recent"></div></section>
+</main>
+<dialog id="dlg"></dialog><dialog id="vdlg"><video id="vid" controls style="width:100%;max-height:75vh"></video><div class="acts"><button class="b" onclick="vdlg.close();vid.pause()">닫기</button></div></dialog>
 <script>
-const L={ready:"대기",scheduled:"예약",uploaded:"완료",failed:"실패"};
-const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0"), ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const hm=s=>s.slice(11,16), md=s=>s.slice(5,10).replace("-","/");
+let V=[],chF="all",now=new Date();
+const PAL=["--c0","--c1","--c2","--c3","--c4"];
+const col=i=>`var(${PAL[i%PAL.length]})`;
+
 async function load(){
-  const v=await (await fetch("/api/videos")).json(), g={};
-  v.forEach(x=>{((g[x.channel_name+" ("+x.google_account+")"]??={})[x.source+" · "+x.slot_time]??=[]).push(x)});
-  const n=k=>v.filter(x=>x.status==k).length;
-  sum.textContent=`전체 ${v.length} · 업로드 완료 ${n("uploaded")} · 예약 ${n("scheduled")} · 대기 ${n("ready")}`;
-  root.innerHTML=Object.entries(g).map(([ch,ss])=>`<h2>${esc(ch)}</h2>`+Object.entries(ss).map(([s,vs])=>
-   `<h3>${esc(s)}</h3><div class="card"><table><tr><th>상태</th><th>예정/완료</th><th>제목</th><th>썸네일</th><th></th></tr>`+vs.map(x=>
-   `<tr><td class="s ${x.status}">${L[x.status]}</td><td>${(x.uploaded_at||x.scheduled_at||"-").replace("T"," ")}</td>
-    <td class="t">${esc(x.title)}</td><td>${esc(x.thumbnail_path)||"-"}</td><td>`+
-    (x.status=="uploaded"?(x.youtube_url?`<a href="${esc(x.youtube_url)}" target="_blank">링크</a>`:""):
-     `<button onclick='cp(${JSON.stringify(x.title)})'>제목 복사</button>
-      <button class="p" onclick="up(${x.id})">업로드 페이지 열기</button><button onclick="done(${x.id})">완료 처리</button>`)+
-   `</td></tr>`).join("")+`</table></div>`).join("")).join("");
+  V=await (await fetch("/api/videos")).json(); now=new Date(); render();
 }
-const cp=t=>navigator.clipboard.writeText(t);
-function up(id){window.open("https://studio.youtube.com","_blank")}
-async function done(id){const url=prompt("업로드된 영상 URL (선택)")??"";
-  await fetch("/api/mark",{method:"POST",body:JSON.stringify({id,status:"uploaded",url})});load()}
-load();
+function model(){
+  const chs=[],srcs=[];
+  V.forEach(v=>{
+    let c=chs.find(x=>x.name==v.channel_name); if(!c){c={name:v.channel_name,acct:v.google_account,i:chs.length,srcs:[]};chs.push(c)}
+    let s=srcs.find(x=>x.name==v.source); if(!s){s={name:v.source,kind:v.kind,slot:v.slot_time,ch:c,vs:[]};srcs.push(s);c.srcs.push(s)}
+    s.vs.push(v);
+  });
+  return {chs,srcs};
+}
+const isLate=v=>v.status!="uploaded"&&v.scheduled_at&&new Date(v.scheduled_at)<now;
+function render(){
+  $("clock").textContent=now.toLocaleString("ko-KR");
+  const {chs,srcs}=model(), today=ymd(now);
+  // 오늘 올림 기준: source별 오늘 올린 개수
+  srcs.forEach(s=>{s.doneToday=s.vs.filter(v=>v.status=="uploaded"&&v.uploaded_at?.startsWith(today));
+    const [h,m]=s.slot.split(":"); s.slotAt=new Date(now.getFullYear(),now.getMonth(),now.getDate(),+h,+m);
+    s.pend=s.vs.filter(v=>v.status!="uploaded").length;});
+  const done=srcs.filter(s=>s.doneToday.length).length, total=srcs.length;
+  const late=V.filter(isLate).length, pend=V.filter(v=>v.status!="uploaded").length, up=V.filter(v=>v.status=="uploaded").length;
+  $("kpis").innerHTML=`
+   <div class="card kpi"><div class="l">오늘 올림</div><div class="v">${done} <small>/ ${total} 자리</small></div></div>
+   <div class="card kpi"><div class="l">올릴 영상 (재고)</div><div class="v">${pend}</div></div>
+   <div class="card kpi"><div class="l">올린 영상 누계</div><div class="v">${up}</div></div>
+   <div class="card kpi ${late?"bad":""}"><div class="l">지연 (예정 시각 지남)</div><div class="v">${late}</div></div>`;
+  timeline(srcs); bars(chs); summary(chs); chcards(chs); queue(chs); recent(chs);
+}
+function timeline(srcs){
+  const W=1200,L=330,R=20,rh=30,H=srcs.length*rh+26,x=h=>L+(W-L-R)*h/24;
+  let g="";for(let h=0;h<=24;h+=3)g+=`<line x1="${x(h)}" x2="${x(h)}" y1="14" y2="${H-8}" stroke="var(--bd)"/><text x="${x(h)}" y="10" text-anchor="middle">${h}시</text>`;
+  const nh=now.getHours()+now.getMinutes()/60;
+  srcs.forEach((s,i)=>{const y=26+i*rh+rh/2-6,c=col(s.ch.i),[h,m]=s.slot.split(":"),sh=+h+m/60;
+    g+=`<text x="${L-10}" y="${y+4}" text-anchor="end" style="fill:var(--fg)">${esc(s.ch.name)} · ${esc(s.name.split("@")[0])}</text><line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--bd)"/>`;
+    if(s.doneToday.length){s.doneToday.forEach(v=>{const t=+v.uploaded_at.slice(11,13)+v.uploaded_at.slice(14,16)/60;g+=`<circle cx="${x(t)}" cy="${y}" r="7" fill="${c}"><title>${esc(v.title)} ${hm(v.uploaded_at)}</title></circle>`})}
+    else{const late=nh>sh;g+=`<circle cx="${x(sh)}" cy="${y}" r="7" fill="var(--card)" stroke="${late?"var(--bad)":c}" stroke-width="2.5"><title>예정 ${s.slot}</title></circle><text x="${x(sh)+12}" y="${y+4}" style="fill:${late?"var(--bad)":"var(--mut)"}">${s.slot}${late?" 지연":""}</text>`}});
+  g+=`<line x1="${x(nh)}" x2="${x(nh)}" y1="14" y2="${H-8}" stroke="var(--fg)" stroke-width="1.5"/>`;
+  $("timeline").innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="min-width:760px;width:100%">${g}</svg>`;
+}
+function bars(chs){
+  const days=[...Array(14)].map((_,i)=>{const d=new Date(now);d.setDate(d.getDate()-13+i);return ymd(d)});
+  const cnt=days.map(d=>chs.map(c=>V.filter(v=>v.status=="uploaded"&&v.channel_name==c.name&&v.uploaded_at?.startsWith(d)).length));
+  const mx=Math.max(4,...cnt.map(a=>a.reduce((x,y)=>x+y,0))),W=600,H=210,B=30,bw=(W-40)/14;
+  let g="";for(let t=0;t<=mx;t+=Math.ceil(mx/4)){const y=H-B-(H-B-14)*t/mx;g+=`<line x1="30" x2="${W}" y1="${y}" y2="${y}" stroke="var(--bd)"/><text x="24" y="${y+4}" text-anchor="end">${t}</text>`}
+  cnt.forEach((a,i)=>{let y=H-B;a.forEach((n,k)=>{const h=(H-B-14)*n/mx;y-=h;if(n)g+=`<rect x="${34+i*bw}" y="${y}" width="${bw-8}" height="${h}" rx="3" fill="${col(k)}"><title>${chs[k].name} ${n}개</title></rect>`});
+    if(i%2==0||i==13)g+=`<text x="${34+i*bw+(bw-8)/2}" y="${H-10}" text-anchor="middle">${days[i].slice(5).replace("-","/")}</text>`});
+  $("leg1").innerHTML=chs.map(c=>`<span><span class="dot" style="--cc:${col(c.i)}"></span>${esc(c.name)}</span>`).join("");
+  $("bars").innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%">${g}</svg>`;
+}
+function summary(chs){
+  $("summary").innerHTML=`<table><tr><th>채널</th><th>대기·예약</th><th>완료</th><th>지연</th><th>총 영상</th></tr>`+chs.map(c=>{const vs=V.filter(v=>v.channel_name==c.name),p=vs.filter(v=>v.status!="uploaded").length,l=vs.filter(isLate).length;
+   return `<tr><td><span class="dot" style="--cc:${col(c.i)}"></span>${esc(c.name)}</td><td>${p}</td><td>${vs.length-p}</td><td class="${l?"late":""}">${l}</td><td>${vs.length}</td></tr>`}).join("")+`</table>`;
+}
+function chcards(chs){
+  $("chcards").innerHTML=chs.map(c=>{
+    const vs=V.filter(v=>v.channel_name==c.name),pend=vs.filter(v=>v.status!="uploaded"),
+      nxt=pend.filter(v=>v.scheduled_at).sort((a,b)=>a.scheduled_at.localeCompare(b.scheduled_at))[0],
+      last=vs.filter(v=>v.status=="uploaded").sort((a,b)=>b.uploaded_at.localeCompare(a.uploaded_at))[0],
+      dn=c.srcs.filter(s=>s.doneToday.length).length;
+    return `<div class="card chcard" style="--cc:${col(c.i)}"><div class="top"><b>${esc(c.name)}</b><span class="chip ${dn==c.srcs.length?"ok":"warn"}">오늘 ${dn}/${c.srcs.length}</span></div>
+     <div class="acct">${esc(c.acct)}</div>
+     <div class="kv"><span>다음 올릴 시간</span><span>${nxt?(isLate(nxt)?`<b class="late">지금 (지연 ${md(nxt.scheduled_at)} ${hm(nxt.scheduled_at)})</b>`:`<b>${md(nxt.scheduled_at)} ${hm(nxt.scheduled_at)}</b>`):'<span class="chip bad">예약 없음</span>'}</span>
+     <span>마지막 올림</span><span>${last?`${md(last.uploaded_at)} ${hm(last.uploaded_at)} <span class="mut">${esc(last.title).slice(0,24)}</span>`:"–"}</span></div>`+
+     c.srcs.map(s=>{const w=s.vs.filter(v=>v.status=="ready").length,sc=s.vs.filter(v=>v.status=="scheduled").length,d=s.vs.filter(v=>v.status=="uploaded").length;
+      return `<div class="src"><div class="n"><b>${esc(s.name.split("@")[0])}</b><span class="chip">${s.kind=="long"?"롱폼":"쇼츠"}</span><span class="chip">매일 ${s.slot}</span></div>
+       <div style="margin-top:4px">${s.pend?`<span class="chip ${s.pend<3?"warn":"ok"}">재고 ${s.pend}일치</span>`:'<span class="chip bad">재고 없음 — 제작 세션에서 등록 필요</span>'}
+       <span class="chip">대기 ${w}</span><span class="chip">예약 ${sc}</span><span class="chip">완료 ${d}</span></div></div>`}).join("")+`</div>`}).join("");
+}
+function queue(chs){
+  const q=V.filter(v=>v.status!="uploaded").sort((a,b)=>(a.scheduled_at||"9").localeCompare(b.scheduled_at||"9"));
+  $("qtabs").innerHTML=`<button class="tab ${chF=="all"?"on":""}" data-f="all">전체 ${q.length}</button>`+chs.map(c=>`<button class="tab ${chF==c.name?"on":""}" data-f="${esc(c.name)}">${esc(c.name)} ${q.filter(v=>v.channel_name==c.name).length}</button>`).join("");
+  const list=q.filter(v=>chF=="all"||v.channel_name==chF); $("qcount").textContent=` ${list.length}개`;
+  $("queue").innerHTML=list.length?`<table><tr><th>채널</th><th>영상</th><th>제목 (클릭하면 설명·태그)</th><th>예정</th><th>상태</th><th></th></tr>`+list.map(v=>{
+   const c=chs.find(x=>x.name==v.channel_name),late=isLate(v);
+   return `<tr><td style="white-space:nowrap"><span class="dot" style="--cc:${col(c.i)}"></span>${esc(v.channel_name)}<div class="acct">${esc(v.source.split("@")[0])}</div></td>
+    <td>${thumb(v)}</td><td><div class="title" onclick="this.classList.toggle('open')">${esc(v.title)}</div><div class="detail">${esc(v.description||"(설명 없음)")}\n${v.tags?"태그: "+esc(v.tags)+"\n":""}${esc(v.file_path)}</div></td><td style="white-space:nowrap" class="${late?"late":""}">${v.scheduled_at?md(v.scheduled_at)+" "+hm(v.scheduled_at)+(late?" ⚠ 지연":""):'<span class="mut">미배정</span>'}</td>
+    <td><span class="chip ${v.status=="scheduled"?"warn":""}">${v.status=="scheduled"?"예약":"대기"}</span></td>
+    <td style="white-space:nowrap"><button class="b p" onclick="openUp(${v.id})">올리기</button> <button class="b" onclick="done(${v.id})">완료</button></td></tr>`}).join("")+`</table>`
+   :`<div class="empty">올릴 영상이 없어요. 제작 세션에서 <code>tower.py add</code>로 등록하세요.</div>`;
+}
+function thumb(v){return `<img class="thumb ${v.kind=="long"?"long":""}" src="/thumb/${v.id}" loading="lazy" onclick="play(${v.id})" onerror="this.style.opacity='.25'" alt="">`}
+function recent(chs){
+  $("recent").innerHTML=`<table><tr><th>채널</th><th>편</th><th>제목</th><th>올린 시각</th><th>링크</th><th></th></tr>`+chs.flatMap(c=>V.filter(v=>v.channel_name==c.name&&v.status=="uploaded").sort((a,b)=>b.uploaded_at.localeCompare(a.uploaded_at)).slice(0,6)).map(v=>{
+   const c=chs.find(x=>x.name==v.channel_name);
+   return `<tr><td style="white-space:nowrap"><span class="dot" style="--cc:${col(c.i)}"></span>${esc(v.channel_name)}</td><td class="acct">${esc(v.source.split("@")[0])}</td><td>${esc(v.title)}</td>
+    <td style="white-space:nowrap">${md(v.uploaded_at)} ${hm(v.uploaded_at)}</td><td>${v.youtube_url?`<a href="${esc(v.youtube_url)}" target="_blank" rel="noopener">보기</a>`:"–"}</td>
+    <td><button class="b" onclick="undo(${v.id})">되돌리기</button></td></tr>`}).join("")+`</table>`;
+  if(!V.some(v=>v.status=="uploaded"))$("recent").innerHTML='<div class="empty">아직 올린 영상이 없어요.</div>';
+}
+function play(id){vid.src="/video/"+id;vdlg.showModal();vid.play().catch(()=>{})}
+const cp=(t,b)=>{navigator.clipboard.writeText(t);if(b){b.textContent="복사됨";setTimeout(()=>b.textContent="복사",1200)}};
+function openUp(id){const v=V.find(x=>x.id==id);
+  const f=(l,t)=>`<div class="field"><label>${l}</label><div class="row"><div class="box">${esc(t||"–")}</div><button class="b" onclick="cp(${esc(JSON.stringify(t||""))},this)">복사</button></div></div>`;
+  dlg.innerHTML=`<h3>업로드 준비 — ${esc(v.channel_name)}</h3><div class="mut">로그인할 구글 계정: <b>${esc(v.google_account)}</b></div>`+f("제목",v.title)+f("설명",v.description)+f("태그",v.tags)+f("영상 파일",v.file_path)+f("썸네일 파일",v.thumbnail_path)+
+   `<div class="acts"><button class="b" onclick="dlg.close()">닫기</button><button class="b p" onclick="window.open('https://studio.youtube.com','_blank')">YouTube Studio 열기</button><button class="b g" onclick="dlg.close();done(${v.id})">업로드 완료 처리</button></div>`;
+  dlg.showModal();}
+async function post(body){await fetch("/api/mark",{method:"POST",body:JSON.stringify(body)});load()}
+function done(id){const u=prompt("업로드된 영상 URL (없으면 비워두세요)");if(u===null)return;post({id,status:"uploaded",url:u})}
+function undo(id){if(confirm("완료를 취소하고 다시 '예약' 상태로 되돌릴까요?"))post({id,status:"scheduled"})}
+document.addEventListener("click",e=>{const t=e.target.closest(".tab");if(t){chF=t.dataset.f;render()}});
+load();setInterval(load,60000);
 </script></body></html>

@@ -2,7 +2,8 @@
 """YouTube 컨트롤타워: 통합 DB + 스케줄 배정 + 대시보드 서버."""
 import argparse, json, os, sqlite3, sys
 from datetime import datetime, timedelta
-from http.server import BaseHTTPRequestHandler, HTTPServer
+import mimetypes
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("TOWER_DB", os.path.join(HERE, "tower.db"))
@@ -71,7 +72,8 @@ def interval(a):
 def mark(vid, status, url=""):
     c = conn()
     up = datetime.now().strftime("%Y-%m-%dT%H:%M") if status == "uploaded" else None
-    c.execute("UPDATE videos SET status=?, uploaded_at=COALESCE(?,uploaded_at), youtube_url=COALESCE(NULLIF(?,''),youtube_url) WHERE id=?",
+    # 완료가 아닌 상태로 되돌리면 업로드 시각을 지운다
+    c.execute("UPDATE videos SET status=?, uploaded_at=?, youtube_url=COALESCE(NULLIF(?,''),youtube_url) WHERE id=?",
               (status, up, url, vid)); c.commit()
 
 def rows():
@@ -87,8 +89,31 @@ class H(BaseHTTPRequestHandler):
         b = body.encode() if isinstance(body, str) else body
         self.send_response(200); self.send_header("Content-Type", ct + "; charset=utf-8")
         self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
+    def _file(self, vid, col):
+        r = conn().execute(f"SELECT {col} FROM videos WHERE id=?", (vid,)).fetchone()
+        p = r[0] if r else ""
+        if not p or not os.path.isfile(p): self.send_error(404); return
+        size = os.path.getsize(p); start, end = 0, size - 1
+        rng = self.headers.get("Range")
+        if rng and rng.startswith("bytes="):
+            a, _, b = rng[6:].partition("-"); start = int(a or 0); end = int(b) if b else end
+        self.send_response(206 if rng else 200)
+        self.send_header("Content-Type", mimetypes.guess_type(p)[0] or "application/octet-stream")
+        self.send_header("Accept-Ranges", "bytes"); self.send_header("Content-Length", str(end - start + 1))
+        if rng: self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+        self.end_headers()
+        try:
+            with open(p, "rb") as f:
+                f.seek(start); left = end - start + 1
+                while left > 0:
+                    d = f.read(min(1 << 20, left))
+                    if not d: break
+                    self.wfile.write(d); left -= len(d)
+        except (BrokenPipeError, ConnectionError): pass
     def do_GET(self):
         if self.path == "/api/videos": self._send(json.dumps(rows(), ensure_ascii=False))
+        elif self.path.startswith("/thumb/"): self._file(int(self.path[7:]), "thumbnail_path")
+        elif self.path.startswith("/video/"): self._file(int(self.path[7:]), "file_path")
         else: self._send(open(os.path.join(HERE, "dashboard.html"), "rb").read(), "text/html")
     def do_POST(self):
         d = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
@@ -96,7 +121,7 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, *x): pass
 
 def serve(a):
-    print(f"대시보드: http://localhost:{a.port}"); HTTPServer(("127.0.0.1", a.port), H).serve_forever()
+    print(f"대시보드: http://localhost:{a.port}"); ThreadingHTTPServer(("127.0.0.1", a.port), H).serve_forever()
 
 p = argparse.ArgumentParser(); sp = p.add_subparsers(dest="cmd", required=True)
 sp.add_parser("init"); sp.add_parser("list"); sp.add_parser("schedule")
