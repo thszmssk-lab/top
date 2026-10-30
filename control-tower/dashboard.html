@@ -64,19 +64,22 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const pad=n=>String(n).padStart(2,"0"), ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const hm=s=>s.slice(11,16), md=s=>s.slice(5,10).replace("-","/");
-let V=[],chF="all",now=new Date();
+let V=[],SRC=[],chF="all",now=new Date();
 const PAL=["--c0","--c1","--c2","--c3","--c4"];
 const col=i=>`var(${PAL[i%PAL.length]})`;
 
 async function load(){
-  V=await (await fetch("/api/videos")).json(); now=new Date(); render();
+  V=await (await fetch("/api/videos")).json(); SRC=await (await fetch("/api/sources")).json(); now=new Date(); render();
 }
 function model(){
   const chs=[],srcs=[];
+  SRC.forEach(v=>{
+    let c=chs.find(x=>x.name==v.channel_name); if(!c){c={name:v.channel_name,acct:v.google_account,i:chs.length,srcs:[]};chs.push(c)}
+    if(!srcs.find(x=>x.name==v.source)){const s={name:v.source,kind:v.kind,slot:v.slot_time,ch:c,vs:[]};srcs.push(s);c.srcs.push(s)}
+  });
   V.forEach(v=>{
     let c=chs.find(x=>x.name==v.channel_name); if(!c){c={name:v.channel_name,acct:v.google_account,i:chs.length,srcs:[]};chs.push(c)}
-    let s=srcs.find(x=>x.name==v.source); if(!s){s={name:v.source,kind:v.kind,slot:v.slot_time,ch:c,vs:[]};srcs.push(s);c.srcs.push(s)}
-    s.vs.push(v);
+    let s=srcs.find(x=>x.name==v.source); s.vs.push(v);
   });
   return {chs,srcs};
 }

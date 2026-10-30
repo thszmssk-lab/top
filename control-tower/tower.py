@@ -112,6 +112,8 @@ class H(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionError): pass
     def do_GET(self):
         if self.path == "/api/videos": self._send(json.dumps(rows(), ensure_ascii=False))
+        elif self.path == "/api/sources": self._send(json.dumps([dict(r) for r in conn().execute("""SELECT s.name source, s.kind, s.slot_time, c.channel_name, c.google_account
+            FROM sources s JOIN channels c ON c.id=s.channel_id ORDER BY c.id, s.id""")], ensure_ascii=False))
         elif self.path.startswith("/thumb/"): self._file(int(self.path[7:]), "thumbnail_path")
         elif self.path.startswith("/video/"): self._file(int(self.path[7:]), "file_path")
         else: self._send(open(os.path.join(HERE, "dashboard.html"), "rb").read(), "text/html")
